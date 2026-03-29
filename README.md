@@ -295,24 +295,3 @@ Mesmo com o app estável, ainda existem limites naturais do projeto:
 - comportamento de autoplay do navegador, especialmente após fluxos de autenticação.
 
 Essas limitações não significam necessariamente bug crítico; muitas vêm das próprias plataformas envolvidas.
-
-## Guia de Publicação no GitHub
-
-Se você quiser subir este projeto ao GitHub com uma apresentação mais profissional, use este pacote como base:
-
-- README principal na raiz;
-- tutorial em `docs/QUICKSTART.md`;
-- política em `docs/PRIVACY_AND_USE.md`;
-- `.gitignore` para evitar subir cache, `venv`, logs e builds temporários.
-
-Descrição curta sugerida para o GitHub:
-
-> Experimental browser-based jam sync project with Spotify-driven playback, YouTube matching, synced lyrics, artist context and a portable Windows host app.
-
-## Próximos Passos Recomendados
-
-- adicionar capturas de tela em `docs` ou `assets`;
-- publicar releases do host app com a pasta final compactada;
-- manter credenciais reais e arquivos de runtime fora do Git;
-- documentar melhor os limites de sync e fallback por plataforma;
-- incluir GIF curto mostrando a jam em funcionamento.
