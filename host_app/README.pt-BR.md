@@ -108,6 +108,14 @@ Usado para:
 - acompanhar progresso;
 - manter a jam alinhada ao que o host está ouvindo.
 
+Antes de o host autorizar o Spotify, o app do Spotify Developer precisa incluir este Redirect URI:
+
+```text
+http://127.0.0.1:5000/spotify/callback
+```
+
+Sem esse callback configurado, o fluxo de autorização do Spotify no host app / jam local falha.
+
 ### YouTube Data API v3
 
 Usado para:
@@ -133,9 +141,14 @@ Ele não substitui o player. Ele só expõe a sessão local do host para convida
 5. o host cria:
    - um app no Spotify Developer Dashboard
    - um projeto no Google Cloud com YouTube Data API v3 ativada
-6. o host cola as credenciais na tela
-7. o mesmo fluxo continua para dentro da jam
-8. quando quiser, o host gera e compartilha o link público dos convidados
+6. nas configurações do app do Spotify, o host adiciona:
+
+```text
+http://127.0.0.1:5000/spotify/callback
+```
+7. o host cola as credenciais na tela
+8. o mesmo fluxo continua para dentro da jam
+9. quando quiser, o host gera e compartilha o link público dos convidados
 
 ## Observação
 

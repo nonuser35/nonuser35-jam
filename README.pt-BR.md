@@ -239,6 +239,14 @@ Usado para:
 - consultar fila;
 - enviar comandos quando o host usa os controles.
 
+Antes de autorizar o Spotify, o host precisa cadastrar este Redirect URI no Spotify Developer Dashboard:
+
+```text
+http://127.0.0.1:5000/spotify/callback
+```
+
+Sem esse callback configurado no app do Spotify do host, a autorização falha mesmo que `CLIENT_ID` e `CLIENT_SECRET` estejam corretos.
+
 ### YouTube Data API v3
 
 Usado para localizar a faixa equivalente que será reproduzida no player da jam.

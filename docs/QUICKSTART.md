@@ -21,6 +21,14 @@ Sem as credenciais de Spotify e YouTube, a jam não consegue ler a faixa do host
    - `YouTube API Key`
 5. Salve as conexões.
 
+Antes disso, no app do Spotify Developer Dashboard do host, adicione este Redirect URI:
+
+```text
+http://127.0.0.1:5000/spotify/callback
+```
+
+Sem esse callback cadastrado, a autorização do Spotify não vai concluir corretamente.
+
 Depois dessa etapa inicial, as credenciais ficam salvas localmente no host e você não precisa repetir esse processo toda vez.
 
 ## Para Que Serve Cada Chave
@@ -33,6 +41,15 @@ Permitem que o projeto descubra:
 - se o host pausou ou retomou;
 - quando a música mudou;
 - em que ponto da faixa a reprodução está.
+
+Importante:
+
+- essas credenciais funcionam junto com o callback do app Spotify;
+- o Redirect URI precisa bater exatamente com:
+
+```text
+http://127.0.0.1:5000/spotify/callback
+```
 
 ### YouTube API Key
 
