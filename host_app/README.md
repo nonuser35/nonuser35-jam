@@ -1,6 +1,6 @@
 # Host App
 
-Language: English | [Português (Brasil)](/C:/Users/Usuario/Documents/scrapping%20dados/host_app/README.pt-BR.md)
+Language: English | [Português (Brasil)](README.pt-BR.md)
 
 This folder contains the Windows host app packaging layer for `nonuser35-jam`.
 

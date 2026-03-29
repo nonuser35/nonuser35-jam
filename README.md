@@ -1,6 +1,6 @@
 # nonuser35-jam
 
-Language: English | [Português (Brasil)](/C:/Users/Usuario/Documents/scrapping%20dados/README.pt-BR.md)
+Language: English | [Português (Brasil)](README.pt-BR.md)
 
 Experimental browser-based jam sync project with Spotify-driven playback, YouTube matching, synced lyrics, PT-BR translation, artist context, and a portable Windows host app.
 

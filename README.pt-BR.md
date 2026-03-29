@@ -1,6 +1,6 @@
 # nonuser35-jam
 
-Idioma: Português (Brasil) | [English](/C:/Users/Usuario/Documents/scrapping%20dados/README.md)
+Idioma: Português (Brasil) | [English](README.md)
 
 Projeto experimental de jam musical via navegador, com sync entre Spotify e player web, contexto visual do artista, letras sincronizadas, tradução em PT-BR e host app Windows portátil.
 

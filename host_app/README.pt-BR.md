@@ -1,6 +1,6 @@
 # Host App
 
-Idioma: Português (Brasil) | [English](/C:/Users/Usuario/Documents/scrapping%20dados/host_app/README.md)
+Idioma: Português (Brasil) | [English](README.md)
 
 Esta pasta contém a camada de empacotamento do app Windows do host para `nonuser35-jam`.
 
