@@ -1,297 +1,299 @@
 # nonuser35-jam
 
-Projeto experimental de jam musical via navegador, com sync entre Spotify e player web, contexto visual do artista, letras sincronizadas, tradução em PT-BR e host app Windows portátil.
+Language: English | [Português (Brasil)](/C:/Users/Usuario/Documents/scrapping%20dados/README.pt-BR.md)
 
-## Resumo Rápido
+Experimental browser-based jam sync project with Spotify-driven playback, YouTube matching, synced lyrics, PT-BR translation, artist context, and a portable Windows host app.
 
-- o host conecta Spotify e YouTube uma vez;
-- a jam acompanha a música atual do Spotify do host;
-- o site resolve uma versão equivalente no YouTube / YT Music;
-- convidados entram por navegador local ou link público;
-- a interface mostra player, letras, tradução, contexto visual e presença na sala.
+## Quick Summary
 
-## O Que Você Encontra Aqui
+- the host connects Spotify and YouTube once;
+- the jam follows the host's current Spotify track;
+- the site resolves an equivalent version on YouTube / YT Music;
+- guests join through localhost or a public link;
+- the interface shows player, lyrics, translation, artist context, and presence in the room.
 
-- sync da faixa atual do Spotify com player web da jam;
-- swaps entre players do YouTube para reduzir cortes;
-- letras sincronizadas com tradução em PT-BR;
-- widget do artista com imagens, curiosidades, site e agenda;
-- host app Windows portátil para abrir a jam com poucos cliques.
+## What You Will Find Here
 
-## Uso, Privacidade e Escopo
+- Spotify-driven track sync for the web jam player;
+- dual-player YouTube swaps to reduce cuts;
+- synced lyrics with PT-BR translation;
+- artist widget with images, curiosities, website, and tour context;
+- portable Windows host app to launch and manage the jam quickly.
 
-Este projeto existe para:
+## Usage, Privacy, and Scope
 
-- estudo;
-- prototipagem;
-- pesquisa de UX;
-- pesquisa de sync audiovisual;
-- experimentação técnica local.
+This project exists for:
 
-Não é apresentado como:
+- study;
+- prototyping;
+- UX research;
+- audiovisual sync research;
+- local technical experimentation.
 
-- produto oficial;
-- serviço comercial;
-- solução com garantia de uptime;
-- ferramenta licenciada para exploração comercial;
-- software afiliado oficialmente a Spotify, YouTube ou Cloudflare.
+It is not presented as:
 
-O host é responsável por:
+- an official product;
+- a commercial service;
+- a guaranteed uptime solution;
+- a licensed commercial playback tool;
+- software officially affiliated with Spotify, YouTube, or Cloudflare.
 
-- suas próprias credenciais de API;
-- links públicos que decidir compartilhar;
-- permissões dadas aos convidados;
-- ambiente local em que a jam roda.
+The host is responsible for:
 
-O projeto salva dados de runtime locais, como:
+- their own API credentials;
+- public links they choose to share;
+- permissions given to guests;
+- the local environment where the jam runs.
 
-- configuração;
-- perfis;
-- cache de vídeo;
+The project stores local runtime data such as:
+
+- configuration;
+- profiles;
+- video cache;
 - logs;
-- imagens baixadas para contexto visual.
+- downloaded visual context assets.
 
-Esses dados ficam no ambiente local do host. Para a política completa, veja `docs/PRIVACY_AND_USE.md`.
+These stay in the host's local environment. For the full policy, see `docs/PRIVACY_AND_USE.md`.
 
-## Aviso Sobre a API do Spotify
+## Spotify API Notice
 
-O projeto depende da Spotify Web API para:
+The project depends on the Spotify Web API to:
 
-- descobrir a faixa atual;
-- saber play/pause;
-- acompanhar progresso;
-- detectar trocas de música;
-- consultar a fila;
-- enviar play/pause quando aplicável.
+- identify the current track;
+- know play/pause state;
+- track playback progress;
+- detect track changes;
+- inspect queue state;
+- send playback commands when applicable.
 
-Pontos importantes:
+Important points:
 
-- o Spotify trabalha com limite de requests em janela móvel de 30 segundos;
-- esse limite não é exposto de forma clara como um painel de “quota restante” igual ao Google Cloud;
-- em modo de desenvolvimento, esse limite tende a ser mais sensível;
-- se a API entrar em rate limit, o projeto pode temporariamente demorar mais para atualizar a faixa, o estado do player ou a fila.
+- Spotify uses a rolling 30-second request window;
+- this limit is not exposed as a clear “remaining quota” dashboard like Google Cloud;
+- in development mode, the limit tends to be more sensitive;
+- when rate limited, the jam may temporarily react slower to track, state, or queue updates.
 
-Quando isso acontece:
+When that happens:
 
-- o bloqueio costuma ser temporário;
-- pode durar alguns minutos ou algumas horas, dependendo do `Retry-After` retornado;
-- isso não afeta o uso normal do aplicativo oficial do Spotify;
-- o impacto fica concentrado no app/site da jam, que depende dessas leituras da API.
+- the block is usually temporary;
+- it may last minutes or a few hours depending on the `Retry-After`;
+- it does not affect normal use of the official Spotify app;
+- the impact stays on the jam app/site because that layer depends on Web API reads.
 
-Hoje o projeto já tenta reduzir esse risco com:
+The project already tries to reduce this risk with:
 
-- polling mais econômico;
-- bursts curtos só em momentos críticos;
-- projeção local do progresso da faixa;
-- cache local de vídeo;
-- backoff automático quando a API limita requests.
+- leaner polling;
+- short bursts only in critical moments;
+- local playback progress projection;
+- local video cache;
+- automatic backoff when the API starts limiting requests.
 
-## Como Testar Rápido
+## Quick Start
 
-### Site local
+### Local site
 
 ```bat
 cd /d "C:\Users\Usuario\Documents\scrapping dados\projeto"
 python yp2.py
 ```
 
-Depois abra:
+Then open:
 
 ```text
 http://localhost:5000
 ```
 
-### Host app Windows
+### Windows host app
 
-1. rode `host_app/setup_build_env.bat`
-2. depois rode `host_app/build_host.bat`
-3. use a pasta final em `host_app/final/NONUSER35 JAM Host`
+1. run `host_app/setup_build_env.bat`
+2. then run `host_app/build_host.bat`
+3. use the final folder in `host_app/final/NONUSER35 JAM Host`
 
-## Visão Geral
+## Overview
 
-O projeto acompanha a faixa tocando no Spotify do host, encontra uma versão equivalente no YouTube para o player da jam e sincroniza a reprodução para convidados.
+The project follows the current track playing on the host's Spotify, finds an equivalent version on YouTube for the jam player, and synchronizes playback for guests.
 
-Além do player, a interface também pode exibir:
+Besides playback, the interface can also show:
 
-- letra sincronizada;
-- tradução em PT-BR;
-- contexto visual do artista;
-- curiosidades;
-- site oficial;
-- agenda;
-- perfis dos participantes;
-- link público para compartilhar a sessão.
+- synced lyrics;
+- PT-BR translation;
+- artist visual context;
+- curiosities;
+- official website;
+- tour / show data;
+- participant profiles;
+- a public session link.
 
-## Como o App Funciona
+## How the App Works
 
-Fluxo geral:
+General flow:
 
-1. O host abre o site local ou o host app Windows.
-2. Conecta Spotify e YouTube na primeira configuração.
-3. O backend local lê a faixa atual do Spotify.
-4. O sistema resolve uma versão equivalente no YouTube / YT Music.
-5. O player web da jam assume essa faixa.
-6. O site sincroniza tempo, play/pause e trocas.
-7. O host pode gerar um link público para convidados.
+1. the host opens the local site or the Windows host app;
+2. Spotify and YouTube are configured the first time;
+3. the local backend reads the current Spotify track;
+4. the system resolves an equivalent version on YouTube / YT Music;
+5. the jam player takes over that track;
+6. the site keeps time, play/pause, and track swaps aligned;
+7. the host can generate a public link for guests.
 
-Na prática, o projeto é dividido assim:
+In practice, the project is split like this:
 
-- `Spotify`: diz o que está tocando agora e qual o estado da reprodução.
-- `backend local`: decide o estado da jam, resolve vídeos, mantém cache e expõe as rotas locais.
-- `frontend web`: toca a faixa, faz swaps de player, mostra letras, tradução e contexto visual.
-- `Cloudflare Tunnel`: opcional, só para compartilhar a jam fora do localhost.
-- `host app`: empacota a experiência do host num `.exe` portátil.
+- `Spotify`: tells the app what is currently playing and its playback state;
+- `local backend`: owns jam state, resolves videos, keeps cache, and exposes local routes;
+- `web frontend`: plays the jam track, manages swaps and sync, and renders lyrics and artist context;
+- `Cloudflare Tunnel`: optional layer for sharing the jam outside localhost;
+- `host app`: wraps the host experience into a portable `.exe`.
 
-## Lógica de Sync
+## Sync Logic
 
-O sync da jam não depende só de “dar play num vídeo”.
+The jam does not work by simply pressing play on a video.
 
-Hoje ele trabalha com:
+It currently relies on:
 
-- leitura da faixa atual do Spotify;
-- comparação de `track_id` para detectar mudança real;
-- resolução do `videoId` da nova faixa;
-- swap entre dois players do YouTube para reduzir cortes;
-- correção de drift;
-- pré-cache da próxima faixa quando possível;
-- bursts curtos de polling em momentos críticos.
+- Spotify current-track reads;
+- `track_id` comparison to detect real track changes;
+- `videoId` resolution for the new track;
+- dual YouTube player swaps to reduce cuts;
+- drift correction;
+- next-track pre-cache when possible;
+- short polling bursts during critical moments.
 
-Na maior parte do tempo:
+Most of the time:
 
-- o site roda de forma mais livre;
-- o backend confirma o estado do Spotify em intervalos controlados;
-- a correção fica mais forte quando há troca de faixa, sync inicial, play/pause ou handoff.
+- the site runs more freely;
+- the backend confirms Spotify state at controlled intervals;
+- heavier correction happens during track changes, initial hydration, play/pause, or handoff moments.
 
-Isso existe para equilibrar:
+This exists to balance:
 
-- responsividade;
-- estabilidade;
-- e consumo da Spotify API.
+- responsiveness;
+- stability;
+- and Spotify API pressure.
 
-## Troca de Música
+## Track Changes
 
-O projeto trata dois cenários principais:
+The project handles two main cases:
 
-### 1. Troca natural
+### 1. Natural transition
 
-Quando a música termina e a próxima entra normalmente:
+When one track ends and the next one starts normally:
 
-- a fila ajuda a preparar a próxima faixa;
-- o player inativo pode ser pré-carregado;
-- a transição tende a ser mais suave.
+- the queue helps prepare the next track;
+- the inactive player can be preloaded;
+- the transition tends to be smoother.
 
-### 2. Troca manual fora da fila
+### 2. Manual change outside queue
 
-Quando o host clica em outra música direto no Spotify:
+When the host clicks another song directly in Spotify:
 
-- o backend detecta a mudança pela faixa atual, não pela fila;
-- tenta resolver o vídeo da nova faixa imediatamente;
-- abre uma janela curta de polling mais rápido;
-- o frontend segura um pequeno intervalo antes de matar o player antigo, para evitar silêncio seco ou repeat estranho.
+- the backend detects the change from the current track, not from the queue;
+- it tries to resolve the new video immediately;
+- it opens a short faster-polling window;
+- the frontend holds a small grace interval before killing the old player, reducing silence or awkward repeats.
 
-Esse é o cenário mais difícil e onde o projeto mais depende de:
+This is the hardest case and where the project depends most on:
 
-- cache local;
-- resolução rápida do vídeo;
-- e boa resposta da API do Spotify.
+- local cache;
+- fast video resolution;
+- and good Spotify API responsiveness.
 
-## Letras e Tradução
+## Lyrics and Translation
 
-O sistema de letras tenta:
+The lyrics system tries to:
 
-- buscar letra sincronizada;
-- mostrar a linha atual no tempo certo;
-- permitir tradução em PT-BR;
-- antecipar o começo da tradução para não perder o início da música.
+- fetch synced lyrics;
+- show the active line at the right moment;
+- allow PT-BR translation;
+- bring the first translated lines early enough so the beginning of the song is not lost.
 
-A tradução pode entrar em etapas:
+Translation may arrive in stages:
 
-- primeiro um começo útil;
-- depois o restante;
-- e por fim a letra completa.
+- first a useful beginning;
+- then more lines;
+- and finally the full translated lyric.
 
-## Contexto Visual do Artista
+## Artist Visual Context
 
-O widget do artista pode reunir:
+The artist widget may bring together:
 
-- fotos do artista;
-- curiosidades;
-- site;
+- artist photos;
+- curiosities;
+- website;
 - status;
-- próximo show;
-- último show;
-- fundo contextual com imagens do local do show.
+- next show;
+- last show;
+- contextual venue imagery.
 
-Esses dados são coletados e cacheados localmente para o site ficar mais estável durante o uso.
+These assets are collected and cached locally to keep the site more stable during real use.
 
-## APIs e Serviços Necessários
+## Required APIs and Services
 
 ### Spotify
 
-Usado para:
+Used to:
 
-- identificar a faixa atual;
-- ler play/pause;
-- ler progresso;
-- detectar troca de música;
-- consultar fila;
-- enviar comandos quando o host usa os controles.
+- identify the current track;
+- read play/pause state;
+- read progress;
+- detect track changes;
+- inspect queue state;
+- send playback commands when the host uses controls.
 
 ### YouTube Data API v3
 
-Usado para localizar a faixa equivalente que será reproduzida no player da jam.
+Used to find the equivalent track that the jam player will reproduce.
 
 ### Cloudflare Tunnel
 
-Usado para criar um link público quando o host quiser compartilhar a sessão fora da rede local.
+Used to create a public link when the host wants to share the session outside the local network.
 
-## Estrutura do Repositório
+## Repository Structure
 
-- `projeto`: backend Flask, frontend da jam e arquivos de runtime.
-- `host_app`: build, launcher, ícones e empacotamento do app Windows.
-- `docs/QUICKSTART.md`: tutorial de uso e configuração.
-- `docs/PRIVACY_AND_USE.md`: privacidade, escopo, responsabilidade e uso.
+- `projeto`: Flask backend, jam frontend, and runtime-facing code.
+- `host_app`: launcher, build scripts, icons, and host app packaging.
+- `docs/QUICKSTART.md`: usage and setup guide.
+- `docs/PRIVACY_AND_USE.md`: privacy, scope, responsibility, and usage notes.
 
-## Requisitos Para Desenvolvimento
+## Development Requirements
 
 - Python 3.11
-- conta Spotify Developer com app criado
-- projeto Google Cloud com YouTube Data API v3 ativada
-- `cloudflared` disponível para links públicos
+- a Spotify Developer app
+- a Google Cloud project with YouTube Data API v3 enabled
+- `cloudflared` available for public links
 
-## Estrutura Técnica da Jam
+## Technical Structure
 
-### Backend local
+### Local backend
 
-- roda em Flask;
-- consulta Spotify;
-- resolve vídeos;
-- mantém cache e estado da sessão;
-- entrega rotas locais para frontend e host app.
+- runs on Flask;
+- talks to Spotify;
+- resolves videos;
+- keeps cache and session state;
+- exposes local routes for the frontend and host app.
 
-### Frontend web
+### Web frontend
 
-- toca a faixa da jam;
-- gerencia sync, swaps e drift;
-- mostra letras, tradução e widget do artista;
-- roda tanto no navegador normal quanto dentro do host app.
+- plays the jam track;
+- manages sync, swaps, and drift;
+- shows lyrics, translation, and the artist widget;
+- works both in a normal browser and inside the host app flow.
 
 ### Host app
 
-- sobe o backend local;
-- abre a jam;
-- mostra status da sala, link público e janela de requests recentes;
-- organiza a experiência do host em um `.exe` portátil.
+- starts the local backend;
+- opens the jam;
+- shows room status, public link, and recent request counters;
+- organizes the host experience into a portable `.exe`.
 
-## Limitações Técnicas Naturais
+## Natural Technical Limits
 
-Mesmo com o app estável, ainda existem limites naturais do projeto:
+Even when the app is behaving well, some limits are still inherent to the stack:
 
-- diferenças de catálogo entre Spotify e YouTube;
-- versões ao vivo, remaster, lyric video ou upload alternativo;
-- delays pontuais na resolução de vídeo;
-- limites temporários da Spotify API;
-- variações de tempo entre plataformas;
-- comportamento de autoplay do navegador, especialmente após fluxos de autenticação.
+- catalog differences between Spotify and YouTube;
+- live, remaster, lyric-video, or alternate uploads;
+- occasional delays in video resolution;
+- temporary Spotify API limits;
+- timing differences across platforms;
+- browser autoplay constraints, especially after authentication flows.
 
-Essas limitações não significam necessariamente bug crítico; muitas vêm das próprias plataformas envolvidas.
+These do not automatically mean a critical bug; many come from the platforms themselves.

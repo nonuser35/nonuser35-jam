@@ -1,147 +1,155 @@
 # Host App
 
-PT/EN:
-- o app final do host agora tem alternancia de idioma na propria janela
-- o pacote final tambem gera `LEIA-ME PRIMEIRO.txt` e `README FIRST.txt`
+Language: English | [Português (Brasil)](/C:/Users/Usuario/Documents/scrapping%20dados/host_app/README.pt-BR.md)
 
-Esta pasta prepara o projeto para virar um app Windows do host, sem exigir Python instalado no PC final.
+This folder contains the Windows host app packaging layer for `nonuser35-jam`.
 
-## O que ja foi preparado
+It exists so the host can run the jam from a portable `.exe` without needing Python installed on the final machine.
 
-- `launcher.py`: entrypoint do app empacotado.
-- `nonuser35_host.spec`: build do PyInstaller.
-- `setup_build_env.bat`: cria uma venv limpa so para o build.
-- `build_host.bat`: script rapido para gerar a versao do host.
-- `requirements-build.txt`: dependencias minimas da venv de build.
+## What Is Included
+
+- `launcher.py`: host app entrypoint and desktop control panel
+- `nonuser35_host.spec`: PyInstaller build spec
+- `setup_build_env.bat`: creates a clean build virtual environment
+- `build_host.bat`: quick build script
+- `requirements-build.txt`: build-time dependencies
+- `app_icon.png` / `app_icon.ico`: host app icon assets
+
+## What the Host App Does
+
+The host app:
+
+- starts the local backend on port `5000`;
+- opens the host jam in the browser when requested;
+- shows a desktop control panel for the host;
+- exposes local and public guest links;
+- controls Cloudflare Tunnel startup and shutdown;
+- keeps runtime files inside the packaged app structure.
+
+## Current Host UX
+
+The desktop window acts as a host control panel.
+
+It now shows:
+
+- host control guidance;
+- server status;
+- room / control state;
+- Spotify request window summary;
+- Spotify limit state;
+- host local link;
+- guest public link;
+- QR for the guest public link;
+- dedicated buttons for:
+  - opening the host jam;
+  - opening the public jam;
+  - copying the guest link;
+  - starting or stopping the tunnel.
 
 ## Cloudflare
 
-O backend agora procura automaticamente por:
+The backend looks automatically for:
 
 - `cloudflared.exe`
 - `cloudflared-windows-amd64.exe`
 
-na pasta:
+inside:
 
-- [projeto](/C:/Users/Usuario/Documents/scrapping%20dados/projeto)
-- ou na raiz do projeto
+- `projeto/`
+- or the project root
 
-Entao o arquivo que voce colocou em [projeto/cloudflared-windows-amd64.exe](/C:/Users/Usuario/Documents/scrapping%20dados/projeto/cloudflared-windows-amd64.exe) ja entra na logica do app.
+So if `cloudflared-windows-amd64.exe` is placed in `projeto/`, the host app will already use it.
 
-## Como gerar o app
+## Build Flow
 
-### Fluxo recomendado
+Recommended flow:
 
-1. Rode [host_app/setup_build_env.bat](/C:/Users/Usuario/Documents/scrapping%20dados/host_app/setup_build_env.bat)
-2. Depois rode [host_app/build_host.bat](/C:/Users/Usuario/Documents/scrapping%20dados/host_app/build_host.bat)
-3. O resultado final sai em:
+1. run `host_app/setup_build_env.bat`
+2. then run `host_app/build_host.bat`
+3. the final output is generated in:
 
-- `host_app/final/nonuser35-jam-host/`
+```text
+host_app/final/NONUSER35 JAM Host/
+```
 
-### Por que isso e melhor
+## Why This Build Flow Is Used
 
-- usa uma venv limpa so para o empacotamento
-- evita puxar bibliotecas gigantes e desnecessarias do seu Python principal
-- deixa o app final menor, mais estavel e mais previsivel
+- it uses a clean build-only virtual environment;
+- it avoids pulling unnecessary packages from the main Python install;
+- it keeps the final app smaller and more predictable;
+- it works well with a Flask backend, local assets, JSON runtime files, and Cloudflare executable packaging.
 
-## Como o app funciona
+## How the Site Side Works
 
-- a pessoa extrai a pasta pronta
-- abre `nonuser35-jam-host.exe`
-- o app sobe o backend local na porta `5000`
-- abre uma janelinha simples do host, que pode ficar minimizada
-- essa janela mostra:
-  - status do servidor
-  - pessoas na jam
-  - estado dos controles
-  - status do tunnel
-  - link atual
-- abre o navegador em `http://localhost:5000`
-- usa o `cloudflared` embutido quando o host pedir o link publico
-- ao fechar a janela do host, a jam e o `cloudflared` tambem encerram
+When the host uses the packaged app:
 
-## Como o site funciona
+- the backend still runs locally;
+- the browser UI still lives at `http://localhost:5000`;
+- Spotify provides current playback state;
+- the jam resolves an equivalent track on YouTube / YT Music;
+- lyrics, artist context, and guest presence remain part of the same site experience.
 
-O site do host existe para transformar a sessao local em uma sala compartilhavel.
+Guests:
 
-Na pratica:
+- join through browser;
+- follow the same jam session;
+- see lyrics, artist context, and room presence;
+- may or may not control playback depending on host permissions.
 
-- o host conecta as proprias APIs uma vez
-- o player acompanha a musica que esta tocando no Spotify do host
-- o site procura uma versao equivalente no YouTube para reproduzir no player da jam
-- a letra, o contexto visual do artista e os perfis dos participantes aparecem juntos na mesma interface
-- quando o host quiser, ele gera um link publico e envia para os convidados
-
-Os convidados:
-
-- entram pelo navegador
-- acompanham a mesma jam
-- veem letra, infos e perfis
-- e podem ou nao controlar a musica, dependendo da permissao do host
-
-## Para que servem as APIs
+## API Roles
 
 ### Spotify
 
-As credenciais do Spotify servem para o host:
+Used to:
 
-- ler a musica atual
-- saber quando a faixa mudou
-- acompanhar tempo, play, pause, proxima e anterior
-- manter a jam sincronizada com o que o host esta ouvindo
-
-Sem Spotify, o site nao sabe qual musica esta rodando no host.
+- read the current track;
+- detect play / pause;
+- detect track changes;
+- track progress;
+- keep the jam aligned with the host's listening session.
 
 ### YouTube Data API v3
 
-A chave do YouTube serve para:
+Used to:
 
-- encontrar a faixa correspondente para tocar no player da jam
-- buscar um resultado melhor quando o Spotify muda de musica
-- ajudar o site a usar uma versao mais parecida com a musica real do host
-
-Sem essa chave, o player da jam nao consegue localizar bem a musica para reproduzir.
+- find the playback candidate for the jam player;
+- improve matching quality when the Spotify track changes.
 
 ### Cloudflare Tunnel
 
-O Cloudflare Tunnel serve para:
+Used to:
 
-- criar um link publico para quem esta fora da rede local
-- deixar convidados entrarem na jam pela internet
+- expose the jam publicly outside localhost;
+- let guests join from outside the local network.
 
-Ele nao substitui o player. Ele so faz a ponte entre:
+It does not replace the player. It only exposes the host's local session to remote guests.
 
-- o PC do host
-- e os convidados externos
+## First-Time Flow
 
-## Fluxo da primeira vez
+1. the host opens the app
+2. the host starts the host jam flow
+3. the browser opens `http://localhost:5000`
+4. the setup screen asks for APIs
+5. the host creates:
+   - a Spotify Developer app
+   - a Google Cloud project with YouTube Data API v3 enabled
+6. the host pastes the credentials into the setup screen
+7. the same browser flow continues into the jam
+8. when needed, the host generates and shares the public guest link
 
-1. O host abre o app.
-2. O navegador abre em `http://localhost:5000`.
-3. A tela de configuracao aparece pedindo as APIs.
-4. Antes de colar qualquer chave, o host precisa criar:
+## Notes
 
-- um app no Spotify Developer Dashboard
-- um projeto no Google Cloud com a `YouTube Data API v3` ativada
+The packaging is intentionally `onedir`, which is usually more stable for a project that mixes:
 
-5. Depois disso, o host copia as credenciais e cola na tela.
-6. A mesma guia continua viva e a jam passa a funcionar ali.
-7. Quando quiser compartilhar, o host gera o link publico.
+- Flask backend;
+- static site assets;
+- local JSON/runtime files;
+- cached resources;
+- external tunnel executable.
 
-## Observacao
+So the final experience is:
 
-Esta base foi preparada em modo `onedir`, que costuma ser mais estavel para um projeto com:
-
-- backend Flask
-- site estatico
-- assets locais
-- cache/JSON
-- executavel externo do Cloudflare
-
-Entao a experiencia final fica assim:
-
-- voce entrega uma pasta pronta
-- a pessoa nao instala Python
-- a pessoa nao instala bibliotecas
-- ela so abre o `.exe` que esta dentro dessa pasta
-- a pasta temporaria de build pode ser apagada automaticamente apos a geracao
+- deliver a ready folder;
+- the user does not install Python;
+- the user does not install packages;
+- they simply open the `.exe` inside the final folder.

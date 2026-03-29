@@ -5,6 +5,7 @@ import threading
 import multiprocessing
 import runpy
 import tempfile
+import time
 import urllib.parse
 import urllib.request
 import webbrowser
@@ -43,6 +44,7 @@ qr_image = None
 last_qr_url = ""
 current_lang = "pt"
 single_instance_handle = None
+app_launch_started_at = 0.0
 
 
 def get_runtime_log_path():
@@ -140,6 +142,7 @@ COPY = {
     "pt": {
         "title": "NONUSER35 JAM Host",
         "subtitle": "Painel de controle do host. Use esta janela para abrir a jam, compartilhar o link dos convidados e acompanhar o estado da sala.",
+        "host_tip": "Passo a passo: abra a pagina da jam no navegador, confira o guia de APIs, preencha e salve os campos corretamente, copie o link publico dos convidados nesta janela, envie para amigos e depois de play no Spotify para comecar a sessao.",
         "server": "Servidor",
         "room": "Sala",
         "controls": "Controles",
@@ -158,8 +161,9 @@ COPY = {
         "details_show": "Mostrar detalhes tecnicos",
         "details_hide": "Ocultar detalhes tecnicos",
         "hint_default": "Fechar esta janela encerra a jam e o cloudflared. As APIs e perfis salvos continuam guardados.",
-        "action_default": "Tudo pronto para iniciar a sala.",
-        "open": "Abrir jam",
+        "action_default": "Leia a orientacao acima e clique no botao principal quando quiser iniciar a jam no navegador do host.",
+        "open": "Iniciar passo a passo no host",
+        "open_public": "Abrir jam publica",
         "copy": "Copiar link dos convidados",
         "start_tunnel": "Gerar link publico",
         "stop_tunnel": "Encerrar link",
@@ -176,6 +180,7 @@ COPY = {
         "link_wait": "Aguarde alguns segundos",
         "copy_ok": "Link copiado para a area de transferencia.",
         "copy_fail": "Nao foi possivel copiar o link.",
+        "public_link_unavailable": "O link publico dos convidados ainda nao esta disponivel.",
         "qr_placeholder": "QR e link publico dos convidados aparecem aqui",
         "qr_loading": "Gerando QR e link publico dos convidados...",
         "qr_fail": "Nao foi possivel gerar o QR agora",
@@ -204,6 +209,7 @@ COPY = {
     "en": {
         "title": "NONUSER35 JAM Host",
         "subtitle": "Host control panel. Use this window to open the jam, share the guest link, and follow the room status.",
+        "host_tip": "Quick flow: open the jam page in the browser, follow the API guide, fill and save the fields correctly, copy the guests' public link from this window, send it to friends, then press play on Spotify to start the session.",
         "server": "Server",
         "room": "Room",
         "controls": "Controls",
@@ -222,8 +228,9 @@ COPY = {
         "details_show": "Show technical details",
         "details_hide": "Hide technical details",
         "hint_default": "Closing this window shuts down the jam and cloudflared. Saved APIs and profiles remain stored.",
-        "action_default": "Everything is ready to start the room.",
-        "open": "Open jam",
+        "action_default": "Read the guidance above and click the main button when you want to start the jam in the host browser.",
+        "open": "Start host setup flow",
+        "open_public": "Open public jam",
         "copy": "Copy guest link",
         "start_tunnel": "Generate public link",
         "stop_tunnel": "Stop link",
@@ -240,6 +247,7 @@ COPY = {
         "link_wait": "Please wait a few seconds",
         "copy_ok": "Link copied to clipboard.",
         "copy_fail": "Could not copy the link.",
+        "public_link_unavailable": "The guest public link is not available yet.",
         "qr_placeholder": "The guest QR and public link will appear here",
         "qr_loading": "Generating the guest QR and public link...",
         "qr_fail": "Could not generate the QR right now",
@@ -282,6 +290,16 @@ def load_backend_module():
     return yp2
 
 
+def get_public_jam_url():
+    try:
+        backend = load_backend_module()
+        payload = backend.get_tunnel_payload()
+        config = backend.ensure_runtime_config()
+        return (payload.get("public_base_url") or config.get("PUBLIC_BASE_URL") or "").strip()
+    except Exception:
+        return ""
+
+
 def open_jam():
     global browser_opened
     if browser_opened:
@@ -294,6 +312,20 @@ def open_jam():
     except Exception:
         browser_opened = False
         pass
+
+
+def open_public_jam(action_var=None):
+    public_url = get_public_jam_url()
+    if not public_url:
+        if action_var is not None:
+            action_var.set(text("public_link_unavailable"))
+        return
+    try:
+        runtime_log(f"[open_public_jam] pid={os.getpid()} opening={public_url}")
+        webbrowser.open(public_url)
+    except Exception:
+        if action_var is not None:
+            action_var.set(text("public_link_unavailable"))
 
 
 def run_server():
@@ -332,10 +364,22 @@ def shutdown_app(root):
 
 
 def build_ui():
-    global app_icon_image
+    global app_icon_image, app_launch_started_at
     root = tk.Tk()
-    root.geometry("840x920")
-    root.minsize(760, 820)
+    app_launch_started_at = time.time()
+    initial_width = 940
+    initial_height = 900
+    min_width = 820
+    min_height = 820
+    try:
+        screen_width = root.winfo_screenwidth()
+        screen_height = root.winfo_screenheight()
+        pos_x = max(24, int((screen_width - initial_width) / 2))
+        pos_y = max(20, int((screen_height - initial_height) / 2) - 40)
+        root.geometry(f"{initial_width}x{initial_height}+{pos_x}+{pos_y}")
+    except Exception:
+        root.geometry(f"{initial_width}x{initial_height}")
+    root.minsize(min_width, min_height)
     root.configure(bg="#07110d")
     icon_ico_path = RUNTIME_ROOT / "host_app" / "app_icon.ico"
     icon_path = RUNTIME_ROOT / "host_app" / "app_icon.png"
@@ -353,6 +397,7 @@ def build_ui():
 
     title_var = tk.StringVar(value=text("title"))
     subtitle_var = tk.StringVar(value=text("subtitle"))
+    host_tip_var = tk.StringVar(value=text("host_tip"))
     status_var = tk.StringVar(value="Iniciando servidor local...")
     room_var = tk.StringVar(value="Jam: aguardando")
     control_var = tk.StringVar(value="Controles: aguardando")
@@ -436,6 +481,18 @@ def build_ui():
     subtitle_label.pack(anchor="w", pady=(4, 0))
     responsive_labels.append((subtitle_label, 420, 220))
 
+    host_tip_label = tk.Label(
+        left_header,
+        textvariable=host_tip_var,
+        fg="#b8d2c0",
+        bg="#0d1713",
+        font=("Segoe UI", 9),
+        justify="left",
+        wraplength=520
+    )
+    host_tip_label.pack(anchor="w", pady=(10, 0))
+    responsive_labels.append((host_tip_label, 520, 240))
+
     hero_badge = tk.Label(
         left_header,
         text="HOST CONSOLE",
@@ -456,6 +513,7 @@ def build_ui():
         root.title(text("title"))
         title_var.set(text("title"))
         subtitle_var.set(text("subtitle"))
+        host_tip_var.set(text("host_tip"))
         hint_var.set(text("hint_default"))
         action_var.set(text("action_default"))
         about_title_var.set(text("about_title"))
@@ -481,6 +539,7 @@ def build_ui():
         guest_link_desc_var.set(text("guest_link_desc"))
         details_toggle_var.set(text("details_hide") if details_open.get() else text("details_show"))
         open_btn.config(text=text("open"))
+        open_public_btn.config(text=text("open_public"))
         copy_btn.config(text=text("copy"))
         tunnel_btn.config(text=text("start_tunnel"))
         stop_tunnel_btn.config(text=text("stop_tunnel"))
@@ -773,6 +832,9 @@ def build_ui():
     open_btn = make_btn(buttons_top, text("open"), open_jam, primary=True)
     open_btn.pack(side="left")
 
+    open_public_btn = make_btn(buttons_top, text("open_public"), lambda: open_public_jam(action_var))
+    open_public_btn.pack(side="left", padx=(8, 0))
+
     copy_btn = make_btn(buttons_top, text("copy"), lambda: copy_link(root, action_var))
     copy_btn.pack(side="left", padx=(8, 0))
 
@@ -813,9 +875,6 @@ def build_ui():
 
         if server_thread and server_thread.is_alive():
             status_var.set(text("server_active"))
-            if not browser_opened:
-                runtime_log(f"[refresh_status] pid={os.getpid()} browser not opened yet, calling open_jam")
-                open_jam()
         else:
             status_var.set(text("server_stopped"))
 
@@ -827,24 +886,28 @@ def build_ui():
             link_var.set(public_url)
             tunnel_btn.config(state="disabled")
             stop_tunnel_btn.config(state="normal")
+            open_public_btn.config(state="normal")
             update_qr_preview(public_url, qr_preview, action_var)
         elif tunnel_payload.get("tunnel_state") == "starting":
             tunnel_var.set(text("tunnel_starting"))
             link_var.set(text("link_wait"))
             tunnel_btn.config(state="disabled")
             stop_tunnel_btn.config(state="disabled")
+            open_public_btn.config(state="disabled")
             update_qr_preview("", qr_preview, action_var, loading=True)
         elif public_url:
             tunnel_var.set(text("tunnel_saved"))
             link_var.set(public_url)
             tunnel_btn.config(state="normal")
             stop_tunnel_btn.config(state="normal")
+            open_public_btn.config(state="normal")
             update_qr_preview(public_url, qr_preview, action_var)
         else:
             tunnel_var.set(text("tunnel_idle"))
             link_var.set(APP_URL)
             tunnel_btn.config(state="normal")
             stop_tunnel_btn.config(state="disabled")
+            open_public_btn.config(state="disabled")
             update_qr_preview("", qr_preview, action_var)
 
         total_requests = int(spotify_window_payload.get("total_requests") or 0)
