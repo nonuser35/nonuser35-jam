@@ -40,8 +40,8 @@ def iniciar_driver_visivel():
 def build_artist_image_queries(artista):
     artista_limpo = " ".join((artista or "").split())
     return [
-        f'band "{artista_limpo}" photo',
-        f'artist "{artista_limpo}" photo',
+        f'band music "{artista_limpo}" photo',
+        f'artist music "{artista_limpo}" photo',
     ]
 
 
@@ -90,9 +90,6 @@ def buscar_links_imagens(driver, artista):
             links.append(link)
             if len(links) >= 5:
                 return links
-
-        if links:
-            return links[:5]
 
     return links[:5]
 
