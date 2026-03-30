@@ -37,16 +37,18 @@ def iniciar_driver_visivel():
     return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
 
 
+def build_artist_image_queries(artista):
+    artista_limpo = " ".join((artista or "").split())
+    return [
+        f'band "{artista_limpo}" photo',
+        f'artist "{artista_limpo}" photo',
+    ]
+
+
 def buscar_links_imagens(driver, artista):
     links = []
     vistos = set()
-    artista_limpo = " ".join((artista or "").split())
-
-    queries = [
-        f'band "{artista_limpo}" members photo',
-        f'artist "{artista_limpo}" portrait photo',
-        f'band "{artista_limpo}" press photo'
-    ]
+    queries = build_artist_image_queries(artista)
 
     selectors = [
         "img.tile--img__img",
@@ -86,43 +88,13 @@ def buscar_links_imagens(driver, artista):
                 continue
             vistos.add(link)
             links.append(link)
-            if len(links) >= 8:
+            if len(links) >= 5:
                 return links
 
         if links:
-            return links[:8]
+            return links[:5]
 
-        for _ in range(2):
-            driver.execute_script("window.scrollBy(0, 1200);")
-            time.sleep(0.9)
-            thumbs = []
-            for selector in selectors:
-                encontrados = driver.find_elements(By.CSS_SELECTOR, selector)
-                if encontrados:
-                    thumbs = encontrados
-                    break
-            for thumb in thumbs:
-                src = (thumb.get_attribute("src") or "").strip()
-                data_src = (thumb.get_attribute("data-src") or "").strip()
-                alt = ((thumb.get_attribute("alt") or "") + " " + (thumb.get_attribute("title") or "")).strip().lower()
-                link = data_src or src
-                if not link.startswith("http"):
-                    continue
-                link_lower = link.lower()
-                if any(bloqueado in link_lower for bloqueado in BLACKLIST_LINKS):
-                    continue
-                if any(tema in link_lower or tema in alt for tema in BLACKLIST_TEMAS):
-                    continue
-                if link in vistos:
-                    continue
-                vistos.add(link)
-                links.append(link)
-                if len(links) >= 8:
-                    return links
-            if links:
-                return links[:8]
-
-    return links[:8]
+    return links[:5]
 
 
 def baixar_fotos_inteligentes(artista):

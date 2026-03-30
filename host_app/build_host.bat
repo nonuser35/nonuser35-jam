@@ -32,6 +32,11 @@ if exist "%CD%\host_app\.buildvenv\Scripts\python.exe" (
     echo.
 )
 
+if exist "%FINAL_DIR%" (
+    echo Limpando build final anterior...
+    rmdir /s /q "%FINAL_DIR%"
+)
+
 echo Verificando dependencias do host...
 "%PYTHON_EXE%" -c "import flask, flask_cors, spotipy, googleapiclient, ytmusicapi, requests, bs4, PIL" >nul 2>&1
 if errorlevel 1 (
@@ -67,6 +72,15 @@ if exist "%DIST_DIR%" (
     if not exist "%DIST_DIR%\docs" mkdir "%DIST_DIR%\docs"
     if not exist "%DIST_DIR%\data" mkdir "%DIST_DIR%\data"
     if not exist "%DIST_DIR%\logs" mkdir "%DIST_DIR%\logs"
+
+    if exist "%DIST_DIR%\.cache" del /f /q "%DIST_DIR%\.cache"
+    if exist "%DIST_DIR%\data\config.json" del /f /q "%DIST_DIR%\data\config.json"
+    if exist "%DIST_DIR%\data\profiles.json" del /f /q "%DIST_DIR%\data\profiles.json"
+    if exist "%DIST_DIR%\data\saved_profiles.json" del /f /q "%DIST_DIR%\data\saved_profiles.json"
+    if exist "%DIST_DIR%\logs\host_runtime.log" del /f /q "%DIST_DIR%\logs\host_runtime.log"
+
+    > "%DIST_DIR%\data\profiles.json" echo {}
+    > "%DIST_DIR%\data\saved_profiles.json" echo {}
 
     > "%DIST_DIR%\Abrir NONUSER35 JAM.bat" echo @echo off
     >> "%DIST_DIR%\Abrir NONUSER35 JAM.bat" echo cd /d "%%~dp0"

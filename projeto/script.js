@@ -1401,6 +1401,9 @@ function applySessionUi() {
     updateShareLinks();
     updateTunnelUi();
     applySetupLanguage();
+    if (setupApiLockActive) {
+        resetProfileFormForSetup();
+    }
 }
 
 async function loadSessionState() {
@@ -1902,6 +1905,10 @@ function updateProfilePreview(name = '', photoDataUrl = '') {
 }
 
 function loadStoredProfile() {
+    if (sessionState.isHost && sessionState.setupRequired && !sessionState.hasApiCredentials) {
+        resetProfileFormForSetup();
+        return;
+    }
     const storedName = localStorage.getItem(PROFILE_NAME_KEY) || '';
     const storedPhoto = localStorage.getItem(PROFILE_PHOTO_KEY) || '';
     const nameInput = document.getElementById('profileNameInput');
@@ -1911,11 +1918,27 @@ function loadStoredProfile() {
     updateProfilePreview(storedName, storedPhoto);
 }
 
+function resetProfileFormForSetup() {
+    const nameInput = document.getElementById('profileNameInput');
+    const photoInput = document.getElementById('profilePhotoInput');
+    if (nameInput) {
+        nameInput.value = '';
+    }
+    if (photoInput) {
+        photoInput.value = '';
+    }
+    updateProfilePreview('', '');
+}
+
 function hasStoredProfileName() {
     return !!(localStorage.getItem(PROFILE_NAME_KEY) || '').trim();
 }
 
 async function restoreStoredProfileFromServer() {
+    if (sessionState.isHost && sessionState.setupRequired && !sessionState.hasApiCredentials) {
+        resetProfileFormForSetup();
+        return false;
+    }
     const clientId = ensureProfileClientId();
     const guestToken = getStoredGuestToken();
     const hasName = !!(localStorage.getItem(PROFILE_NAME_KEY) || '').trim();
@@ -2040,6 +2063,9 @@ function clearStoredProfilePhoto() {
 }
 
 async function syncStoredProfileToServer() {
+    if (sessionState.isHost && sessionState.setupRequired && !sessionState.hasApiCredentials) {
+        return false;
+    }
     const name = (localStorage.getItem(PROFILE_NAME_KEY) || '').trim();
     if (!name) {
         await fetchProfiles();

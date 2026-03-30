@@ -22,6 +22,7 @@ from flask import Flask, Response, jsonify, request, send_from_directory
 from flask_cors import CORS
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
+from spotipy.cache_handler import CacheFileHandler
 from googleapiclient.discovery import build
 
 try:
@@ -62,6 +63,10 @@ RUNTIME_DATA_DIR = RUNTIME_DIR / "data"
 RUNTIME_LOG_DIR = RUNTIME_DIR / "logs"
 CONFIG_FILE = str(RUNTIME_DATA_DIR / "config.json")
 YT_CACHE_FILE = str(RUNTIME_DATA_DIR / "yt_cache.json")
+# Keep a single Spotipy token cache in the app runtime root.
+# The packaged .exe can otherwise end up with multiple .cache files in different folders,
+# which makes the app look configured but boot with broken playback on reopen.
+SPOTIFY_TOKEN_CACHE_FILE = str(RUNTIME_DIR / ".cache")
 PACKAGED_YT_CACHE_FILE = PROJECT_DIR / "yt_cache.json"
 ARTIST_WIDGET_FILE = PROJECT_DIR / "artist_widget.html"
 ARTIST_DATA_FILE = PROJECT_DIR / "dados_artista.js"
@@ -246,12 +251,28 @@ def ensure_runtime_support_files():
         RUNTIME_DATA_DIR.mkdir(parents=True, exist_ok=True)
         RUNTIME_LOG_DIR.mkdir(parents=True, exist_ok=True)
         runtime_cache = Path(YT_CACHE_FILE)
-        if runtime_cache.exists():
-            return
-        if PACKAGED_YT_CACHE_FILE.exists():
+        if not runtime_cache.exists() and PACKAGED_YT_CACHE_FILE.exists():
             runtime_cache.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(PACKAGED_YT_CACHE_FILE, runtime_cache)
             runtime_log(f"[yp2.runtime] seeded yt cache at {runtime_cache}")
+
+        spotify_runtime_cache = Path(SPOTIFY_TOKEN_CACHE_FILE)
+        spotify_runtime_cache.parent.mkdir(parents=True, exist_ok=True)
+        legacy_spotify_caches = [
+            PROJECT_DIR / ".cache",
+            ROOT_DIR / ".cache",
+        ]
+        # Migrate older cache locations into the single runtime cache so future boots
+        # of the packaged app reuse one stable token source instead of diverging.
+        if not spotify_runtime_cache.exists():
+            for legacy_cache in legacy_spotify_caches:
+                try:
+                    if legacy_cache.exists():
+                        shutil.copyfile(legacy_cache, spotify_runtime_cache)
+                        runtime_log(f"[yp2.runtime] migrated spotify cache from {legacy_cache} to {spotify_runtime_cache}")
+                        break
+                except Exception:
+                    continue
     except Exception as exc:
         runtime_log(f"[yp2.runtime] failed seeding yt cache: {exc!r}")
 
@@ -596,11 +617,13 @@ def has_cached_spotify_token(config=None):
 
 def create_spotify_oauth(config=None, *, open_browser=False):
     config = config or ensure_runtime_config()
+    Path(SPOTIFY_TOKEN_CACHE_FILE).parent.mkdir(parents=True, exist_ok=True)
     return SpotifyOAuth(
         client_id=config.get("CLIENT_ID", ""),
         client_secret=config.get("CLIENT_SECRET", ""),
         redirect_uri=REDIRECT_URI,
         scope="user-read-playback-state user-modify-playback-state",
+        cache_handler=CacheFileHandler(cache_path=SPOTIFY_TOKEN_CACHE_FILE),
         open_browser=bool(open_browser)
     )
 
@@ -1563,6 +1586,33 @@ def is_good_song_result(title="", channel_title="", artist_name="", track_name="
     return True
 
 
+def is_safe_fallback_match(title="", channel_title="", artist_name="", track_name="", duration_seconds=None, target_duration_seconds=None):
+    haystack = normalize_search_text(f"{title} {channel_title}")
+    artist_tokens = [token for token in normalized_search_tokens(artist_name) if len(token) >= 2]
+    track_tokens = [token for token in normalized_search_tokens(track_name) if len(token) >= 3]
+
+    if not haystack or not artist_tokens or not track_tokens:
+        return False
+
+    artist_hits = count_token_hits(artist_tokens, haystack)
+    track_hits = count_token_hits(track_tokens, haystack)
+
+    if artist_hits < max(1, math.ceil(len(artist_tokens) * 0.6)):
+        return False
+
+    if track_hits < max(1, math.ceil(len(track_tokens) * 0.75)):
+        return False
+
+    if duration_seconds and target_duration_seconds:
+        try:
+            if abs(float(duration_seconds) - float(target_duration_seconds)) > 18:
+                return False
+        except Exception:
+            return False
+
+    return True
+
+
 def parse_youtube_duration_seconds(raw_duration):
     if not raw_duration:
         return 0
@@ -1794,22 +1844,30 @@ def get_ytmusic_video(query, target_duration_seconds=None, artist_name="", track
 
                     text_score = score_youtube_candidate(title, channel_title)
                     duration_score = score_duration_match(duration_seconds, target_duration_seconds)
-                    candidate = {
-                        "videoId": video_id,
-                        "score": text_score + match_score + duration_score + (55 if search_filter == "songs" else 0),
-                    }
-                    fallback_candidates.append(candidate)
-                    overall_candidates.append(candidate)
+                    if is_safe_fallback_match(
+                        title,
+                        channel_title,
+                        artist_name,
+                        track_name,
+                        duration_seconds,
+                        target_duration_seconds
+                    ):
+                        candidate = {
+                            "videoId": video_id,
+                            "score": text_score + match_score + duration_score + (55 if search_filter == "songs" else 0),
+                        }
+                        fallback_candidates.append(candidate)
+                        overall_candidates.append(candidate)
 
                 if fallback_candidates:
                     best_local = max(fallback_candidates, key=lambda item: item["score"])
-                    if best_local["score"] >= 25:
+                    if best_local["score"] >= 95:
                         print("[yt] ytmusic fallback")
                         return best_local["videoId"]
 
         if overall_candidates:
             best_overall = max(overall_candidates, key=lambda item: item["score"])
-            if best_overall["score"] >= 5:
+            if best_overall["score"] >= 110:
                 print("[yt] ytmusic soft fallback")
                 return best_overall["videoId"]
 
@@ -1870,6 +1928,136 @@ def scrape_youtube(query):
         pass
     return ""
 
+
+def get_youtube_data_api_video(query, target_duration_seconds=None, artist_name="", track_name=""):
+    if youtube is None:
+        return ""
+
+    try:
+        overall_candidates = []
+        for current_query in build_ytmusic_queries(query, artist_name, track_name):
+            try:
+                search_response = youtube.search().list(
+                    part="snippet",
+                    q=current_query,
+                    type="video",
+                    maxResults=6
+                ).execute()
+            except Exception:
+                continue
+
+            items = search_response.get("items") or []
+            if not items:
+                continue
+
+            video_ids = [
+                ((item.get("id") or {}).get("videoId") or "").strip()
+                for item in items
+                if ((item.get("id") or {}).get("videoId") or "").strip()
+            ]
+            if not video_ids:
+                continue
+
+            durations_by_id = {}
+            try:
+                details_response = youtube.videos().list(
+                    part="contentDetails",
+                    id=",".join(video_ids)
+                ).execute()
+                for detail in details_response.get("items") or []:
+                    detail_id = (detail.get("id") or "").strip()
+                    if not detail_id:
+                        continue
+                    durations_by_id[detail_id] = parse_youtube_duration_seconds(
+                        (detail.get("contentDetails") or {}).get("duration")
+                    )
+            except Exception:
+                durations_by_id = {}
+
+            local_candidates = []
+            for item in items:
+                video_id = ((item.get("id") or {}).get("videoId") or "").strip()
+                if not video_id:
+                    continue
+
+                snippet = item.get("snippet") or {}
+                title = snippet.get("title", "") or ""
+                channel_title = snippet.get("channelTitle", "") or ""
+                duration_seconds = durations_by_id.get(video_id, 0)
+
+                if is_rejected_short_variant(title, duration_seconds, target_duration_seconds):
+                    continue
+
+                if is_good_song_result(
+                    title,
+                    channel_title,
+                    artist_name,
+                    track_name,
+                    duration_seconds,
+                    target_duration_seconds
+                ):
+                    return video_id
+
+                if not is_viable_track_candidate(
+                    title,
+                    channel_title,
+                    artist_name,
+                    track_name,
+                    duration_seconds,
+                    target_duration_seconds
+                ):
+                    continue
+
+                if is_exact_song_result(
+                    title,
+                    channel_title,
+                    artist_name,
+                    track_name,
+                    duration_seconds,
+                    target_duration_seconds
+                ):
+                    return video_id
+
+                match_score = score_query_match(title, channel_title, artist_name, track_name)
+                strong_match = is_strong_track_match(
+                    title,
+                    artist_name,
+                    track_name,
+                    duration_seconds,
+                    target_duration_seconds
+                )
+                if strong_match or match_score >= 70:
+                    return video_id
+
+                if is_safe_fallback_match(
+                    title,
+                    channel_title,
+                    artist_name,
+                    track_name,
+                    duration_seconds,
+                    target_duration_seconds
+                ):
+                    candidate = {
+                        "videoId": video_id,
+                        "score": score_youtube_candidate(title, channel_title) + match_score + score_duration_match(duration_seconds, target_duration_seconds)
+                    }
+                    local_candidates.append(candidate)
+                    overall_candidates.append(candidate)
+
+            if local_candidates:
+                best_local = max(local_candidates, key=lambda item: item["score"])
+                if best_local["score"] >= 100:
+                    return best_local["videoId"]
+
+        if overall_candidates:
+            best_overall = max(overall_candidates, key=lambda item: item["score"])
+            if best_overall["score"] >= 120:
+                return best_overall["videoId"]
+    except Exception as e:
+        debug_log(f"Erro YouTube Data API: {e}")
+
+    return ""
+
 # ðŸ”¥ BUSCA PRINCIPAL (YouTube API + fallback)
 def get_yt_video(query, target_duration_seconds=None, artist_name="", track_name=""):
     ytmusic_video_id = get_ytmusic_video(
@@ -1880,7 +2068,20 @@ def get_yt_video(query, target_duration_seconds=None, artist_name="", track_name
     )
     if ytmusic_video_id:
         return ytmusic_video_id
-    return ""
+    youtube_api_video_id = get_youtube_data_api_video(
+        query,
+        target_duration_seconds=target_duration_seconds,
+        artist_name=artist_name,
+        track_name=track_name
+    )
+    if youtube_api_video_id:
+        return youtube_api_video_id
+
+    scraped_video_id = scrape_youtube(query)
+    if scraped_video_id:
+        return scraped_video_id
+
+    return get_yt_invidious(query)
 
 
 def get_yt_video_cached(query, target_duration_seconds=None, artist_name="", track_name=""):
@@ -2713,6 +2914,25 @@ def force_fast_spotify_refresh():
 @app.route('/status')
 def get_status():
     update_playback_data()
+    if (
+        current_data.get("track_id")
+        and not current_data.get("videoId")
+        and current_data.get("artist")
+        and current_data.get("title")
+    ):
+        try:
+            fallback_query = f"{current_data.get('artist', '')} {current_data.get('title', '')}".strip()
+            fallback_video_id = try_resolve_current_video_immediately(
+                fallback_query,
+                target_duration_seconds=(float(current_data.get("duration_ms") or 0) / 1000.0),
+                artist_name=current_data.get("artist", ""),
+                track_name=current_data.get("title", "")
+            )
+            if fallback_video_id:
+                current_data["videoId"] = fallback_video_id
+                debug_log(f"[video-cache] status fallback resolveu atual: {current_data.get('artist')} - {current_data.get('title')}")
+        except Exception as status_fallback_exc:
+            runtime_log(f"[yp2.status] fallback resolution failed: {status_fallback_exc!r}")
     return jsonify(current_data)
 
 
@@ -3035,6 +3255,12 @@ def setup_keys():
             if not auth_url:
                 return jsonify({"status": "ERROR", "message": "Nao foi possivel preparar a autorizacao do Spotify"}), 400
         init_services(open_browser=False)
+        if not needs_spotify_browser:
+            try:
+                force_fast_spotify_refresh()
+                update_playback_data()
+            except Exception as setup_refresh_exc:
+                runtime_log(f"[yp2.setup] immediate playback refresh failed: {setup_refresh_exc!r}")
         if needs_spotify_browser:
             return jsonify({
                 "status": "OK",
