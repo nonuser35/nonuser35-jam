@@ -142,7 +142,7 @@ COPY = {
     "pt": {
         "title": "NONUSER35 JAM Host",
         "subtitle": "Painel de controle do host. Use esta janela para abrir a jam, compartilhar o link dos convidados e acompanhar o estado da sala.",
-        "host_tip": "Passo a passo: abra a pagina da jam no navegador, confira o guia de APIs, preencha e salve os campos corretamente, copie o link publico dos convidados nesta janela, envie para amigos e depois de play no Spotify para comecar a sessao.",
+        "host_tip": "Passo a passo: abra a pagina da jam no navegador, confira o guia de APIs, cadastre no Spotify Developer Dashboard o Redirect URI/callback exatamente como http://127.0.0.1:5000/spotify/callback, preencha e salve os campos corretamente, copie o link publico dos convidados nesta janela, envie para amigos e depois de play no Spotify para comecar a sessao.",
         "server": "Servidor",
         "room": "Sala",
         "controls": "Controles",
@@ -154,6 +154,7 @@ COPY = {
         "live_panel_desc": "Acompanhe o estado da sala e use as acoes principais sem se perder em detalhes tecnicos.",
         "share_title": "Compartilhe com convidados",
         "share_desc": "Este bloco mostra o link publico dos convidados. Gere o link, confira o QR e copie o acesso para compartilhar a sala.",
+        "share_primary_cta": "Primeiro gere a jam publica para convidados",
         "host_link_title": "Link local do host",
         "host_link_desc": "Este e o endereco local do servidor do host. Use no proprio computador do host.",
         "guest_link_title": "Link publico dos convidados",
@@ -162,10 +163,11 @@ COPY = {
         "details_hide": "Ocultar detalhes tecnicos",
         "hint_default": "Fechar esta janela encerra a jam e o cloudflared. As APIs e perfis salvos continuam guardados.",
         "action_default": "Leia a orientacao acima e clique no botao principal quando quiser iniciar a jam no navegador do host.",
-        "open": "Iniciar passo a passo no host",
+        "start_flow": "Abrir a pagina da jam e iniciar o passo a passo",
+        "open": "Reabrir jam do host",
         "open_public": "Abrir jam publica",
         "copy": "Copiar link dos convidados",
-        "start_tunnel": "Gerar link publico",
+        "start_tunnel": "Gerar jam publica para convidados",
         "stop_tunnel": "Encerrar link",
         "close": "Encerrar app/jam",
         "server_active": "Ativo em http://localhost:5000",
@@ -209,7 +211,7 @@ COPY = {
     "en": {
         "title": "NONUSER35 JAM Host",
         "subtitle": "Host control panel. Use this window to open the jam, share the guest link, and follow the room status.",
-        "host_tip": "Quick flow: open the jam page in the browser, follow the API guide, fill and save the fields correctly, copy the guests' public link from this window, send it to friends, then press play on Spotify to start the session.",
+        "host_tip": "Quick flow: open the jam page in the browser, follow the API guide, register the Spotify Redirect URI/callback exactly as http://127.0.0.1:5000/spotify/callback in the Spotify Developer Dashboard, fill and save the fields correctly, copy the guests' public link from this window, send it to friends, then press play on Spotify to start the session.",
         "server": "Server",
         "room": "Room",
         "controls": "Controls",
@@ -221,6 +223,7 @@ COPY = {
         "live_panel_desc": "Follow the room state and use the main actions without getting lost in technical detail.",
         "share_title": "Share with guests",
         "share_desc": "This block shows the guests' public link. Generate it, check the QR, and copy the access to share the room.",
+        "share_primary_cta": "First generate the public jam for guests",
         "host_link_title": "Host local link",
         "host_link_desc": "This is the host's local server address. Use it on the host computer itself.",
         "guest_link_title": "Guest public link",
@@ -229,10 +232,11 @@ COPY = {
         "details_hide": "Hide technical details",
         "hint_default": "Closing this window shuts down the jam and cloudflared. Saved APIs and profiles remain stored.",
         "action_default": "Read the guidance above and click the main button when you want to start the jam in the host browser.",
-        "open": "Start host setup flow",
+        "start_flow": "Open the jam page and start the host flow",
+        "open": "Reopen host jam",
         "open_public": "Open public jam",
         "copy": "Copy guest link",
-        "start_tunnel": "Generate public link",
+        "start_tunnel": "Generate public jam for guests",
         "stop_tunnel": "Stop link",
         "close": "Close app/jam",
         "server_active": "Active at http://localhost:5000",
@@ -302,9 +306,6 @@ def get_public_jam_url():
 
 def open_jam():
     global browser_opened
-    if browser_opened:
-        runtime_log(f"[open_jam] pid={os.getpid()} skipped because browser_opened=True")
-        return
     try:
         runtime_log(f"[open_jam] pid={os.getpid()} opening={APP_URL} browser_opened={browser_opened}")
         browser_opened = True
@@ -398,6 +399,7 @@ def build_ui():
     title_var = tk.StringVar(value=text("title"))
     subtitle_var = tk.StringVar(value=text("subtitle"))
     host_tip_var = tk.StringVar(value=text("host_tip"))
+    start_flow_var = tk.StringVar(value=text("start_flow"))
     status_var = tk.StringVar(value="Iniciando servidor local...")
     room_var = tk.StringVar(value="Jam: aguardando")
     control_var = tk.StringVar(value="Controles: aguardando")
@@ -409,6 +411,7 @@ def build_ui():
     live_panel_desc_var = tk.StringVar(value=text("live_panel_desc"))
     share_title_var = tk.StringVar(value=text("share_title"))
     share_desc_var = tk.StringVar(value=text("share_desc"))
+    share_primary_cta_var = tk.StringVar(value=text("share_primary_cta"))
     host_link_title_var = tk.StringVar(value=text("host_link_title"))
     host_link_desc_var = tk.StringVar(value=text("host_link_desc"))
     guest_link_title_var = tk.StringVar(value=text("guest_link_title"))
@@ -493,6 +496,23 @@ def build_ui():
     host_tip_label.pack(anchor="w", pady=(10, 0))
     responsive_labels.append((host_tip_label, 520, 240))
 
+    start_flow_btn = tk.Button(
+        left_header,
+        textvariable=start_flow_var,
+        command=open_jam,
+        bg="#e4ffec",
+        fg="#07110c",
+        activebackground="#f4fff7",
+        activeforeground="#07110c",
+        relief="flat",
+        padx=16,
+        pady=12,
+        cursor="hand2",
+        bd=0,
+        font=("Segoe UI Semibold", 10)
+    )
+    start_flow_btn.pack(anchor="w", pady=(12, 0))
+
     hero_badge = tk.Label(
         left_header,
         text="HOST CONSOLE",
@@ -514,6 +534,7 @@ def build_ui():
         title_var.set(text("title"))
         subtitle_var.set(text("subtitle"))
         host_tip_var.set(text("host_tip"))
+        start_flow_var.set(text("start_flow"))
         hint_var.set(text("hint_default"))
         action_var.set(text("action_default"))
         about_title_var.set(text("about_title"))
@@ -533,11 +554,13 @@ def build_ui():
         live_panel_desc_var.set(text("live_panel_desc"))
         share_title_var.set(text("share_title"))
         share_desc_var.set(text("share_desc"))
+        share_primary_cta_var.set(text("share_primary_cta"))
         host_link_title_var.set(text("host_link_title"))
         host_link_desc_var.set(text("host_link_desc"))
         guest_link_title_var.set(text("guest_link_title"))
         guest_link_desc_var.set(text("guest_link_desc"))
         details_toggle_var.set(text("details_hide") if details_open.get() else text("details_show"))
+        start_flow_btn.config(textvariable=start_flow_var)
         open_btn.config(text=text("open"))
         open_public_btn.config(text=text("open_public"))
         copy_btn.config(text=text("copy"))
@@ -730,6 +753,20 @@ def build_ui():
     share_desc_label.pack(anchor="w", pady=(6, 10))
     responsive_labels.append((share_desc_label, 520, 220))
 
+    share_cta_card = tk.Frame(top_card, bg="#173224", padx=14, pady=12, highlightthickness=1, highlightbackground="#29523d")
+    share_cta_card.pack(fill="x", pady=(0, 10))
+    share_cta_label = tk.Label(
+        share_cta_card,
+        textvariable=share_primary_cta_var,
+        fg="#effff5",
+        bg="#173224",
+        font=("Segoe UI Semibold", 10),
+        justify="left",
+        wraplength=520
+    )
+    share_cta_label.pack(anchor="w")
+    responsive_labels.append((share_cta_label, 520, 220))
+
     host_link_card = tk.Frame(top_card, bg="#13201a", padx=12, pady=10, highlightthickness=1, highlightbackground="#21372d")
     host_link_card.pack(fill="x", pady=(0, 8))
     tk.Label(
@@ -829,8 +866,8 @@ def build_ui():
     buttons_top = tk.Frame(top_card, bg="#101a15")
     buttons_top.pack(fill="x")
 
-    open_btn = make_btn(buttons_top, text("open"), open_jam, primary=True)
-    open_btn.pack(side="left")
+    tunnel_btn = make_btn(buttons_top, text("start_tunnel"), lambda: start_tunnel_ui(hint_var, action_var), primary=True)
+    tunnel_btn.pack(side="left")
 
     open_public_btn = make_btn(buttons_top, text("open_public"), lambda: open_public_jam(action_var))
     open_public_btn.pack(side="left", padx=(8, 0))
@@ -841,8 +878,8 @@ def build_ui():
     buttons_bottom = tk.Frame(top_card, bg="#101a15")
     buttons_bottom.pack(fill="x", pady=(10, 0))
 
-    tunnel_btn = make_btn(buttons_bottom, text("start_tunnel"), lambda: start_tunnel_ui(hint_var, action_var))
-    tunnel_btn.pack(side="left")
+    open_btn = make_btn(buttons_bottom, text("open"), open_jam, primary=False)
+    open_btn.pack(side="left")
 
     stop_tunnel_btn = make_btn(buttons_bottom, text("stop_tunnel"), lambda: stop_tunnel_ui(hint_var, action_var))
     stop_tunnel_btn.pack(side="left", padx=(8, 0))

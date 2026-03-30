@@ -151,7 +151,7 @@ const setupTranslations = {
             tutorialEyebrow: 'INFO / TUTORIAL',
             tutorialTitle: 'Este é o passo inicial mais importante para usar a jam.',
             tutorialBody: 'Crie o app no Spotify e o projeto no Google Cloud antes de buscar as chaves. Essas credenciais <u>não aparecem prontas</u>: primeiro você cria o app e o projeto nas plataformas e só depois copia os dados para esta tela.',
-            tutorialFooter: 'Preciso fazer isso sempre? <u>Não</u>. Normalmente, você faz isso uma única vez, porque as credenciais ficam salvas no host para os próximos usos.',
+            tutorialFooter: 'Muito importante: no app do Spotify, cadastre o <u>Redirect URI / callback</u> exatamente como <strong>http://127.0.0.1:5000/spotify/callback</strong>. Sem isso, a autorização do Spotify falha. Normalmente, você faz isso uma única vez.',
             guides: [
                 {
                     b: 'Spotify Client ID',
@@ -160,6 +160,10 @@ const setupTranslations = {
                 {
                     b: 'Spotify Client Secret',
                     p: 'No mesmo app, clique em <strong>View client secret</strong> para revelar a chave secreta.'
+                },
+                {
+                    b: 'Spotify Redirect URI / Callback',
+                    p: 'No mesmo app do Spotify, em <strong>Edit settings</strong>, adicione exatamente <strong>http://127.0.0.1:5000/spotify/callback</strong> em Redirect URIs.'
                 },
                 {
                     b: 'YouTube Data API v3 Key',
@@ -176,7 +180,7 @@ const setupTranslations = {
             clientIdHelp: 'Procure exatamente pelo campo chamado <u>Client ID</u>.',
             clientSecretLabel: 'Spotify Client Secret',
             clientSecretPlaceholder: 'Cole o Client Secret do Spotify',
-            clientSecretHelp: 'Use o botão <u>View client secret</u> no painel do app.',
+            clientSecretHelp: 'Use o botão <u>View client secret</u> no painel do app. E confirme também o callback: <strong>http://127.0.0.1:5000/spotify/callback</strong>.',
             ytLabel: 'YouTube Data API v3 Key',
             ytPlaceholder: 'Cole a chave da YouTube Data API v3',
             ytHelp: 'Ative a API antes de gerar a chave.',
@@ -316,7 +320,7 @@ const setupTranslations = {
             tutorialEyebrow: 'INFO / TUTORIAL',
             tutorialTitle: 'This is the most important first step to use the jam',
             tutorialBody: 'Create the Spotify app and the Google Cloud project before looking for the keys. Those credentials do <u>not appear ready-made</u>: first you create the app/project on each platform, then you copy the values into this screen.',
-            tutorialFooter: 'Do I need to do this every time? <u>No</u>. In most cases you do it only once, because the credentials stay saved on the host for future sessions.',
+            tutorialFooter: 'Very important: in the Spotify app settings, register the <u>Redirect URI / callback</u> exactly as <strong>http://127.0.0.1:5000/spotify/callback</strong>. Without this, Spotify authorization will fail. In most cases you only do this once.',
             guides: [
                 {
                     b: 'Spotify Client ID',
@@ -325,6 +329,10 @@ const setupTranslations = {
                 {
                     b: 'Spotify Client Secret',
                     p: 'In the same app, click <strong>View client secret</strong> to reveal the secret key.'
+                },
+                {
+                    b: 'Spotify Redirect URI / Callback',
+                    p: 'In the same Spotify app, open <strong>Edit settings</strong> and add exactly <strong>http://127.0.0.1:5000/spotify/callback</strong> under Redirect URIs.'
                 },
                 {
                     b: 'YouTube Data API v3 Key',
@@ -341,7 +349,7 @@ const setupTranslations = {
             clientIdHelp: 'Look for the field named <u>Client ID</u>.',
             clientSecretLabel: 'Spotify Client Secret',
             clientSecretPlaceholder: 'Paste the Spotify Client Secret',
-            clientSecretHelp: 'Use the <u>View client secret</u> button in the app dashboard.',
+            clientSecretHelp: 'Use the <u>View client secret</u> button in the app dashboard. Also confirm the callback: <strong>http://127.0.0.1:5000/spotify/callback</strong>.',
             ytLabel: 'YouTube Data API v3 Key',
             ytPlaceholder: 'Paste the YouTube Data API v3 key',
             ytHelp: 'Enable the API before generating the key.',
@@ -874,11 +882,11 @@ function ensureSpotifyResumePrompt() {
     prompt.id = 'spotifyResumePrompt';
     prompt.type = 'button';
     prompt.className = 'spotify-resume-prompt hidden';
-    prompt.innerHTML = '<strong>Spotify conectado</strong><span>Clique para retomar a jam nesta mesma aba</span>';
+    prompt.innerHTML = '<strong>Retomar a jam</strong><span>Clique para iniciar o audio da jam nesta mesma aba</span>';
     prompt.addEventListener('click', async () => {
         if (!audioUnlocked) {
             audioUnlocked = true;
-            Player.turnOnAudio(false);
+            Player.turnOnAudio(true);
             prepareActivePlayerAudio();
         }
         openSetupSyncRetryWindow(15000);
@@ -895,10 +903,20 @@ function ensureSpotifyResumePrompt() {
     return prompt;
 }
 
+function showSpotifyResumePrompt(mode = 'playback') {
+    const prompt = ensureSpotifyResumePrompt();
+    if (mode === 'auth') {
+        prompt.innerHTML = '<strong>Spotify conectado</strong><span>Clique para retomar a jam nesta mesma aba</span>';
+    } else {
+        prompt.innerHTML = '<strong>Retomar a jam</strong><span>Esta aba precisa de um clique para tocar a musica que ja esta no Spotify</span>';
+    }
+    prompt.classList.remove('hidden');
+    return prompt;
+}
+
 function maybeShowSpotifyResumePrompt() {
     if (SPOTIFY_AUTH_STATE !== 'ok') return;
-    const prompt = ensureSpotifyResumePrompt();
-    prompt.classList.remove('hidden');
+    showSpotifyResumePrompt('auth');
 }
 
 function ensureSpotifyAuthButton() {
@@ -1854,10 +1872,10 @@ async function fetchProfiles() {
             profiles.joined_recently_window = data.joined_recently_window || 30;
             profiles.server_time = data.server_time || Math.floor(Date.now() / 1000);
         }
-        renderProfiles(profiles.length ? profiles : buildSampleProfiles());
+        renderProfiles(profiles);
     } catch (error) {
         console.error('Profiles Load Error:', error);
-        renderProfiles(buildSampleProfiles());
+        renderProfiles([]);
     }
 }
 
@@ -2009,6 +2027,16 @@ function saveProfileLocally() {
         updateProfilePreview(name, existingPhoto);
         resolve({ name, avatar: existingPhoto });
     });
+}
+
+function clearStoredProfilePhoto() {
+    localStorage.removeItem(PROFILE_PHOTO_KEY);
+    const photoInput = document.getElementById('profilePhotoInput');
+    if (photoInput) {
+        photoInput.value = '';
+    }
+    const currentName = (localStorage.getItem(PROFILE_NAME_KEY) || document.getElementById('profileNameInput')?.value || '').trim();
+    updateProfilePreview(currentName, '');
 }
 
 async function syncStoredProfileToServer() {
@@ -2717,6 +2745,11 @@ const syncEngine = {
             }
 
             updateTrackHandoffState(data);
+            if (sessionState.isHost && effectiveIsPlaying && !!data.videoId && !audioUnlocked) {
+                showSpotifyResumePrompt('playback');
+            } else if (audioUnlocked || !effectiveIsPlaying) {
+                document.getElementById('spotifyResumePrompt')?.classList.add('hidden');
+            }
             this.updateUI(data);
             if (isSetupSyncRetryActive()) {
                 const hasResolvedPausedState = !effectiveIsPlaying && !!(data.track_id || data.title || data.artist);
@@ -3101,8 +3134,15 @@ document.body.addEventListener('click', () => {
     if (!audioUnlocked) {
         console.log("Áudio global desbloqueado");
         audioUnlocked = true;
-        Player.turnOnAudio(false);
+        Player.turnOnAudio(true);
         prepareActivePlayerAudio();
+        if (sessionState.isHost) {
+            openSetupSyncRetryWindow(6000);
+            openSyncAssistWindow(2400);
+            isWaitingForSync = true;
+            scheduleStatusPoll(120);
+            syncEngine.checkStatus();
+        }
     }
 }, { once: true });
 
@@ -3453,6 +3493,17 @@ document.getElementById('saveProfileBtn').addEventListener('click', async () => 
         showSetupMessage('Perfil salvo e sincronizado na jam.', false);
     } else {
         showSetupMessage('Perfil salvo localmente, mas a sincronizacao falhou.');
+    }
+});
+
+document.getElementById('clearProfilePhotoBtn')?.addEventListener('click', async () => {
+    clearStoredProfilePhoto();
+    const hasName = !!(localStorage.getItem(PROFILE_NAME_KEY) || '').trim();
+    if (hasName) {
+        const synced = await syncStoredProfileToServer();
+        showSetupMessage(synced ? 'Foto removida do perfil.' : 'Foto removida localmente, mas a sincronizacao falhou.', !synced);
+    } else {
+        showSetupMessage('Foto removida deste navegador.', false);
     }
 });
 

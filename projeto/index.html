@@ -214,7 +214,10 @@
                                 <small class="field-help" id="profilePhotoHelp">Escolha uma imagem do seu computador para usar como avatar local.</small>
                             </div>
 
-                            <button id="saveProfileBtn" class="secondary-btn" type="button">Salvar perfil</button>
+                            <div class="profile-actions-inline">
+                                <button id="saveProfileBtn" class="secondary-btn" type="button">Salvar perfil</button>
+                                <button id="clearProfilePhotoBtn" class="secondary-btn" type="button">Remover foto</button>
+                            </div>
                         </div>
 
                         <div class="profile-card hidden" id="guestControlCard">
@@ -243,7 +246,7 @@
                             <small id="apiTutorialEyebrow">INFO / TUTORIAL</small>
                             <strong id="apiTutorialTitle">Este é o passo inicial mais importante para usar a jam.</strong>
                             <p id="apiTutorialBody">Crie o app no Spotify e o projeto no Google Cloud antes de buscar as chaves. Essas credenciais <u>não aparecem prontas</u>: primeiro você cria o app/projeto nas plataformas e só depois copia os dados para esta tela.</p>
-                            <span class="setup-inline-note-footer" id="apiTutorialFooter">Preciso fazer isso sempre? <u>Não</u>. Normalmente, você faz isso uma única vez, porque as credenciais ficam salvas no host para os próximos usos.</span>
+                            <span class="setup-inline-note-footer" id="apiTutorialFooter">Muito importante: no app do Spotify, cadastre o <u>Redirect URI / callback</u> exatamente como <strong>http://127.0.0.1:5000/spotify/callback</strong>. Sem isso, a autorização do Spotify falha. Normalmente, você faz isso uma única vez.</span>
                         </div>
                         <div class="config-guide-card">
                             <div class="guide-item">
@@ -253,6 +256,10 @@
                             <div class="guide-item">
                                 <b>Spotify Client Secret</b>
                                 <p>No mesmo app, clique em <strong>View client secret</strong> para revelar a chave secreta.</p>
+                            </div>
+                            <div class="guide-item">
+                                <b>Spotify Redirect URI / Callback</b>
+                                <p>No mesmo app do Spotify, em <strong>Edit settings</strong>, adicione exatamente <strong>http://127.0.0.1:5000/spotify/callback</strong> em Redirect URIs.</p>
                             </div>
                             <div class="guide-item">
                                 <b>YouTube Data API v3 Key</b>
@@ -273,7 +280,7 @@
                         <div class="input-group">
                             <label>Spotify Client Secret</label>
                             <input type="password" id="clientSecretInput" placeholder="Cole o Client Secret do Spotify" autocomplete="off">
-                            <small class="field-help">Use o botão View client secret no painel do app.</small>
+                            <small class="field-help">Use o botão View client secret no painel do app. E confirme também o callback: <strong>http://127.0.0.1:5000/spotify/callback</strong>.</small>
                         </div>
 
                         <div class="input-group">

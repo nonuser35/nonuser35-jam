@@ -1931,6 +1931,14 @@ body.is-playing .jam-profiles-stack {
     height: 100%;
     object-fit: cover;
 }
+.profile-actions-inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.profile-actions-inline .secondary-btn {
+    flex: 1 1 180px;
+}
 .input-group { text-align: left; margin-bottom: 10px; min-width: 0; }
 .input-group label {
     display: block;
